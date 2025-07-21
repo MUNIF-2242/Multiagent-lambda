@@ -1,0 +1,22 @@
+{
+  "name": "teacher-assistant-serverless",
+  "version": "1.0.0",
+  "description": "Teacher Assistant API using Serverless Framework",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "remove": "serverless remove",
+    "logs:weather": "serverless logs -f weather -t",
+    "logs:math": "serverless logs -f math -t",
+    "invoke:weather": "serverless invoke -f weather",
+    "invoke:math": "serverless invoke -f math"
+  },
+  "devDependencies": {
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-python-requirements": "^6.1.2"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}

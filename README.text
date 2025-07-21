@@ -1,0 +1,4 @@
+source .venv/bin/activate
+nvm use 18
+npx serverless offline start --stage dev
+sls deploy --stage prod
