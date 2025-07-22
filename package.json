@@ -1,5 +1,5 @@
 {
-  "name": "teacher-assistant-serverless",
+  "name": "multi-agent",
   "version": "1.0.0",
   "description": "Teacher Assistant API using Serverless Framework",
   "main": "index.js",

@@ -1,4 +1,4 @@
-service: teacher-assistant
+service: multi-agent
 frameworkVersion: "3"
 provider:
   name: aws

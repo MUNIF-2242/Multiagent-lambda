@@ -1,1 +1,0 @@
-# Empty file to make handlers a Python package
