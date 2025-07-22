@@ -1,8 +1,8 @@
-service: teacher-assistant
+service: multi-agent
 frameworkVersion: "3"
 provider:
   name: aws
-  runtime: python3.9
+  runtime: python3.12
   region: us-east-1
   stage: ${opt:stage, 'dev'}
   memorySize: 1024
@@ -28,8 +28,6 @@ provider:
           Resource: "arn:aws:logs:*:*:*"
 plugins:
   - serverless-dotenv-plugin
-  - serverless-python-requirements #this is needed for local development
-  - serverless-offline #this is needed for local development
 custom:
   dotenv:
     path: .env
@@ -64,30 +62,6 @@ functions:
           cors: true
     environment:
       FUNCTION_NAME: teacher
-  weather:
-    handler: handlers.weather_handler.lambda_handler
-    name: ${self:service}-${self:provider.stage}-weather
-    description: Weather assistant function
-    timeout: 30
-    events:
-      - http:
-          path: weather
-          method: post
-          cors: true
-    environment:
-      FUNCTION_NAME: weather
-  math:
-    handler: handlers.math_handler.lambda_handler
-    name: ${self:service}-${self:provider.stage}-math
-    description: Math assistant function
-    timeout: 30
-    events:
-      - http:
-          path: math
-          method: post
-          cors: true
-    environment:
-      FUNCTION_NAME: math
 resources:
   Resources:
     ApiGatewayRestApi:
