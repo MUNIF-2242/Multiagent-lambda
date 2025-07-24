@@ -6,14 +6,11 @@ A specialized Strands agent that is the orchestrator to utilize sub-agents and t
 """
 
 from strands import Agent
-from strands_tools import file_read, file_write, editor
-from .math_assistant import math_assistant
 from .weather_assistant import weather_assistant
+from .knowledgebase_assistant import knowledgebase_assistant
 from .model_loader import get_bedrock_model
 import os
 import logging
-
-
 
 # Initialize model once (outside handler for reuse)
 bedrock_model = None
@@ -28,28 +25,27 @@ def get_model():
 
 # Define a focused system prompt for the orchestrator
 TEACHER_SYSTEM_PROMPT = """
-You are TeachAssist, a sophisticated educational orchestrator designed to coordinate educational support across multiple subjects. Your role is to:
+You are TeachAssist, a sophisticated educational orchestrator designed to coordinate educational support across multiple topics. Your role is to:
 
-1. Analyze incoming student queries and determine the most appropriate specialized agent to handle them:
-   - Weather Assistant: For weather-related questions or city-specific weather reports
+1. Analyze incoming user queries and determine the most appropriate specialized agent to handle them:
+   - Weather Assistant: For weather-related questions or city-specific weather reports.
+   - Knowledge Base Assistant: For all questions related to the custom knowledgebase (facts, concepts, definitions, etc.).
 
 2. Key Responsibilities:
-   - Accurately classify student queries by subject area
+   - Accurately classify queries by subject area
    - Route requests to the appropriate specialized agent
    - Maintain context and coordinate multi-step problems
    - Ensure cohesive responses when multiple agents are needed
    - Politely decline questions outside the supported topics
 
 3. Decision Protocol:
-   - Do not attempt to answer queries outside of the supported tools.
-    + You MUST NOT attempt to answer queries outside of the supported topics (weather).
-    + If the user asks something unrelated, your ONLY reply must be:
-    + "I'm sorry, I can only assist with weather-related questions."
-
+   - If it's a weather question (temperature, forecast, location-specific weather), route to the Weather Assistant.
+   - If it's a general educational or informational question, route to the Knowledge Base Assistant.
+   - If the user asks something unrelated, your ONLY reply must be:
+     "I'm sorry, I can only assist with knowledge base or weather-related questions."
 
 Always confirm your understanding before routing to ensure accurate assistance. Do not attempt to answer queries outside of the supported tools.
 """
-
 
 # Create the teacher orchestrator agent
 teacher_agent = Agent(
@@ -57,7 +53,8 @@ teacher_agent = Agent(
     system_prompt=TEACHER_SYSTEM_PROMPT,
     callback_handler=None,
     tools=[
-        weather_assistant
+        weather_assistant,
+        knowledgebase_assistant
     ],
 )
 
