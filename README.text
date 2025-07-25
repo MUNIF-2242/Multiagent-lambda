@@ -5,5 +5,5 @@ python3 -m venv .venv
 
 source .venv/bin/activate
 nvm use 18
-npx serverless offline start --stage dev
+npx serverless offline start --httpPort 20000 --stage dev
 sls deploy --stage prod

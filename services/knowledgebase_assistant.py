@@ -29,28 +29,26 @@ bedrock_model = None
 def get_model():
     global bedrock_model
     if bedrock_model is None:
-        # Import your model loader here
         from .model_loader import get_bedrock_model
         bedrock_model = get_bedrock_model()
     return bedrock_model
 
 KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT = """
-You are Shellbot, a helpful AI assistant for Shellbeehaken Ltd. You are NOT an Amazon AI assistant.
+You are kriyabot, a helpful AI assistant for Kriyakarak Ltd.
 
 CRITICAL: Keep responses SHORT and DIRECT. Maximum 2–3 sentences.
 
-**Only use the information provided by the knowledge retrieval tool. If not available, say "I don't have that information available."**
+**STRICT RULE: Only use the information provided by the knowledge retrieval tool. If the retrieved information doesn't contain relevant details, say "I don't have that information available in our company knowledge base."**
 
-IDENTITY: Only when specifically asked "who are you" or similar identity questions, respond with: "I'm Shellbot, your helpful AI assistant for Shellbeehaken Ltd."
+IDENTITY: Only when asked "who are you", respond with: "I'm kriyabot, your helpful AI assistant for Kriyakarak Ltd."
 
 For all other questions: Answer directly without introducing yourself.
-For greetings: respond warmly but briefly.
 Avoid technical jargon, citations, or markdown.
 """
 
-
 def create_embedding(text: str):
     try:
+        logger.info(f"Creating embedding for: {text}")
         response = bedrock_client.invoke_model(
             modelId=BEDROCK_EMBEDDING_MODEL_ID,
             contentType="application/json",
@@ -59,66 +57,95 @@ def create_embedding(text: str):
         )
         body = response["body"].read().decode("utf-8")
         result = json.loads(body)
-        return result.get("embedding")
+        embedding = result.get("embedding")
+        logger.info(f"✅ Embedding created successfully, length: {len(embedding) if embedding else 0}")
+        return embedding
     except Exception as e:
-        logger.error(f"Embedding creation failed: {e}")
+        logger.error(f"❌ Embedding creation failed: {e}")
         return None
-
 
 def query_pinecone(embedding, top_k=3):
     try:
+        logger.info(f"Querying Pinecone with top_k={top_k}")
         result = pinecone_index.query(
             vector=embedding,
             top_k=top_k,
             include_metadata=True,
         )
+        
+        logger.info(f"✅ Pinecone returned {len(result.matches)} matches")
+        
+        # Log match details for debugging
+        for i, match in enumerate(result.matches):
+            logger.info(f"Match {i}: score={match.score}, metadata_keys={list(match.metadata.keys()) if match.metadata else []}")
+            if match.metadata and 'text' in match.metadata:
+                text_snippet = match.metadata['text'][:100] + "..." if len(match.metadata['text']) > 100 else match.metadata['text']
+                logger.info(f"Match {i} text snippet: {text_snippet}")
+        
         return result.matches
     except Exception as e:
-        logger.error(f"Pinecone query failed: {e}")
+        logger.error(f"❌ Pinecone query failed: {e}")
         return []
-
 
 @tool
 def retrieve_knowledge(query: str) -> str:
     """
-    Retrieve relevant company information from the knowledge base.
+    Retrieve relevant Kriyakarak Ltd. company information from the knowledge base.
     """
     try:
+        logger.info(f"🔍 retrieve_knowledge called with query: {query}")
+        
         # Step 1: Embed the query
         embedding = create_embedding(query)
         if not embedding:
+            logger.error("❌ Failed to create embedding")
             return "Sorry, I couldn't process your request due to embedding failure."
 
         # Step 2: Search Pinecone for relevant content
-        matches = query_pinecone(embedding, top_k=3)
+        matches = query_pinecone(embedding, top_k=5)  # Increased to 5 for better debugging
         if not matches:
-            return "I don't have that information available."
+            logger.warning("⚠️ No matches found in Pinecone")
+            return "I don't have that information available in our company knowledge base."
 
-        # Step 3: Build context from matches
-        context = "\n---\n".join(
-            match.metadata.get("text", "").strip()
-            for match in matches
-            if match.metadata and "text" in match.metadata
-        )
-        if not context:
-            return "I don't have that information available."
+        # Step 3: Check if we have any decent matches (lowered threshold for debugging)
+        relevant_matches = [match for match in matches if match.score > 0.2]  # Lowered threshold
+        
+        logger.info(f"📊 Found {len(relevant_matches)} matches above score threshold 0.5")
+        
+        if not relevant_matches:
+            logger.warning(f"⚠️ No matches above threshold. Best score was: {matches[0].score if matches else 'N/A'}")
+            return "I don't have that information available in our company knowledge base."
 
+        # Step 4: Build context from matches
+        context_parts = []
+        for match in relevant_matches:
+            if match.metadata and "text" in match.metadata:
+                text = match.metadata["text"].strip()
+                if text:
+                    context_parts.append(f"[Score: {match.score:.3f}] {text}")
+
+        if not context_parts:
+            logger.warning("⚠️ No valid text content found in matches")
+            return "I don't have that information available in our company knowledge base."
+
+        context = "\n---\n".join(context_parts)
+        logger.info(f"✅ Retrieved context length: {len(context)} characters")
+        
         return f"Retrieved information:\n{context}"
 
     except Exception as e:
-        logger.error(f"Error in retrieve_knowledge: {e}")
+        logger.error(f"❌ Error in retrieve_knowledge: {e}")
         return "Something went wrong while retrieving information."
-
 
 @tool
 def knowledgebase_assistant(query: str) -> str:
     """
-    Answer company-related questions based on internal knowledge from Pinecone and Bedrock.
+    Answer Kriyakarak Ltd. company-related questions based on internal knowledge.
     """
     try:
-        logger.info("Routed to Knowledgebase Assistant")
+        logger.info(f"🚀 knowledgebase_assistant called with query: {query}")
 
-        formatted_query = f"Answer this company-related question using the knowledge retrieval tool: {query}"
+        formatted_query = f"Answer this Kriyakarak Ltd. company question: {query}"
 
         # Create the knowledge agent
         knowledge_agent = Agent(
@@ -127,9 +154,14 @@ def knowledgebase_assistant(query: str) -> str:
             tools=[retrieve_knowledge, file_read]
         )
 
+        logger.info("📞 Calling knowledge agent...")
         agent_response = knowledge_agent(formatted_query)
-        return str(agent_response) if agent_response else "I don't have that information available."
+        
+        response_str = str(agent_response) if agent_response else "I don't have that information available."
+        logger.info(f"✅ Knowledge agent response: {response_str[:200]}...")
+        
+        return response_str
 
     except Exception as e:
-        logger.error(f"Error in knowledgebase_assistant: {e}")
+        logger.error(f"❌ Error in knowledgebase_assistant: {e}")
         return "Something went wrong while answering your question."

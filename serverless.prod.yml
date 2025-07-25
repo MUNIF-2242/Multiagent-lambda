@@ -1,17 +1,24 @@
 service: multi-agent
 frameworkVersion: "3"
+
 provider:
   name: aws
   runtime: python3.12
-  region: us-east-1
+  region: ${env:REGION_AWS}
   stage: ${opt:stage, 'dev'}
   memorySize: 1024
   timeout: 30
   environment:
-    STAGE: ${self:provider.stage}
-    REGION_AWS: ${self:provider.region}
-    LOG_LEVEL: INFO
+    STAGE: ${env:STAGE}
+    REGION_AWS: ${env:REGION_AWS}
+    LOG_LEVEL: ${env:LOG_LEVEL}
     FUNCTION_TIMEOUT: ${self:provider.timeout}
+    EMBEDDING_MODEL_ID: ${env:EMBEDDING_MODEL_ID}
+    LLM_MODEL_ID: ${env:LLM_MODEL_ID}
+    PINECONE_ENVIRONMENT: ${env:PINECONE_ENVIRONMENT}
+    PINECONE_INDEX_NAME: ${env:PINECONE_INDEX_NAME}
+    PINECONE_API_KEY: ${env:PINECONE_API_KEY}
+
   iam:
     role:
       statements:
@@ -26,11 +33,14 @@ provider:
             - logs:CreateLogStream
             - logs:PutLogEvents
           Resource: "arn:aws:logs:*:*:*"
+
 plugins:
   - serverless-dotenv-plugin
+
 custom:
   dotenv:
     path: .env
+
 package:
   individually: true
   include:
@@ -49,6 +59,7 @@ package:
     - "**/*.log"
     - "**/*.md"
     - "**/README*"
+
 functions:
   teacher:
     handler: handlers.teacher_handler.lambda_handler
@@ -62,6 +73,7 @@ functions:
           cors: true
     environment:
       FUNCTION_NAME: teacher
+
 resources:
   Resources:
     ApiGatewayRestApi:
@@ -69,6 +81,7 @@ resources:
       Properties:
         Name: ${self:service}-${self:provider.stage}-api
         Description: Teacher Assistant API Gateway
+
   Outputs:
     ApiGatewayRestApiId:
       Value:

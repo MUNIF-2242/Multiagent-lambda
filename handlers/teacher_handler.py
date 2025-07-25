@@ -22,12 +22,12 @@ def lambda_handler(event, context):
         else:
             body = event
         
-        query = body.get('query', '')
+        query = body.get('userQuestion', '')
         context_info = body.get('context', {})
         
         # Validate input
         if not query:
-            return create_response(400, {'error': 'Query parameter is required'})
+            return create_response(400, {'error': 'userQuestion parameter is required'})
         
         start_time = time.time()
         
@@ -39,8 +39,8 @@ def lambda_handler(event, context):
         logger.info(f"Processing time: {elapsed_time:.2f} seconds")
 
         response_payload = create_response(200, {
-            'response': str(response),
-            'query': query,
+            'agentResponse': str(response),
+            'userQuestion': query,
             'context': context_info,
             'stage': os.getenv('STAGE', 'dev'),
             'function': 'teacher-orchestrator'

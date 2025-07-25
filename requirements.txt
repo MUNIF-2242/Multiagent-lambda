@@ -1,4 +1,2 @@
-requests
-strands-agents
-strands-agents-tools
+
 pinecone
